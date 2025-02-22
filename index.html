@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>康威生命游戏</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        #gameCanvas {
+            border: 2px solid #333;
+            background-color: #000;
+            margin: 20px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #generation {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button onclick="startGame()">开始</button>
+        <button onclick="stopGame()">停止</button>
+        <button onclick="clearGrid()">清空</button>
+        <button onclick="randomize()">随机</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="generation">代数: 0</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const cellSize = 10;
+        const gridWidth = 50;
+        const gridHeight = 50;
+        
+        canvas.width = gridWidth * cellSize;
+        canvas.height = gridHeight * cellSize;
+
+        let grid = createEmptyGrid();
+        let isRunning = false;
+        let generation = 0;
+        let animationFrameId;
+
+        function createEmptyGrid() {
+            return Array(gridHeight).fill().map(() => 
+                Array(gridWidth).fill(0)
+            );
+        }
+
+        function drawGrid() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let y = 0; y < gridHeight; y++) {
+                for (let x = 0; x < gridWidth; x++) {
+                    if (grid[y][x]) {
+                        ctx.fillStyle = '#FFF';
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize - 1, cellSize - 1);
+                    }
+                }
+            }
+        }
+
+        function countNeighbors(x, y) {
+            let count = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = (x + dx + gridWidth) % gridWidth;
+                    const ny = (y + dy + gridHeight) % gridHeight;
+                    count += grid[ny][nx];
+                }
+            }
+            return count;
+        }
+
+        function nextGeneration() {
+            const newGrid = createEmptyGrid();
+            for (let y = 0; y < gridHeight; y++) {
+                for (let x = 0; x < gridWidth; x++) {
+                    const neighbors = countNeighbors(x, y);
+                    if (grid[y][x]) {
+                        newGrid[y][x] = (neighbors === 2 || neighbors === 3) ? 1 : 0;
+                    } else {
+                        newGrid[y][x] = neighbors === 3 ? 1 : 0;
+                    }
+                }
+            }
+            grid = newGrid;
+            generation++;
+            document.getElementById('generation').textContent = `代数: ${generation}`;
+        }
+
+        function gameLoop() {
+            nextGeneration();
+            drawGrid();
+            if (isRunning) {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function startGame() {
+            if (!isRunning) {
+                isRunning = true;
+                gameLoop();
+            }
+        }
+
+        function stopGame() {
+            isRunning = false;
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        function clearGrid() {
+            grid = createEmptyGrid();
+            generation = 0;
+            document.getElementById('generation').textContent = `代数: ${generation}`;
+            drawGrid();
+        }
+
+        function randomize() {
+            for (let y = 0; y < gridHeight; y++) {
+                for (let x = 0; x < gridWidth; x++) {
+                    grid[y][x] = Math.random() > 0.85 ? 1 : 0;
+                }
+            }
+            drawGrid();
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / cellSize);
+            const y = Math.floor((e.clientY - rect.top) / cellSize);
+            grid[y][x] = grid[y][x] ? 0 : 1;
+            drawGrid();
+        });
+
+        // 初始化绘制
+        drawGrid();
+    </script>
+</body>
+</html>
